@@ -81,9 +81,12 @@ client.on("message", msg => { //venter på meldinger
                                                 var openingTime = +openDay.openingTime.split(":").join("")
                                                 var closingTime = +openDay.closingTime.split(":").join("")
                                                 var currentTime = +`${date.getHours()}${date.getMinutes()}`
-                                                if (currentTime > openingTime && currentTime < closingTime) {
+                                                if (!openDay.closed && currentTime > openingTime && currentTime < closingTime) {
                                                     msg.reply(`${parsedData[0].storeName} er åpen, den stenger kl${openDay.closingTime}`)
-                                                } else {
+                                                } else if(openDay.closed){
+                                                    msg.reply(`${parsedData[0].storeName} er stengt hele ${norskeDager[date.getDay()]}`)
+                                                } 
+                                                else {
                                                     msg.reply(`${parsedData[0].storeName} er stengt`)
                                                 }
                                             }
@@ -102,7 +105,6 @@ client.on("message", msg => { //venter på meldinger
                                             "MsgId": undefined,
                                             "stores": []
                                         }
-                                        var alertSent = false
                                         parsedData.forEach(store => {
                                             if (reactionIndex < allEmojis.length) {
                                                 StoreEmbed.addField(store.storeName, `${allEmojis[reactionIndex]}`)
@@ -192,6 +194,7 @@ client.on("messageReactionAdd", (react, user) => {
                                             var currentTime = +`${date.getHours()}${date.getMinutes()}`
                                             var openingTime = +regularHour.openingTime.split(":").join("")
                                             var closingTime = +regularHour.closingTime.split(":").join("")
+                                            console.log(regularHour.closed)
                                             if(!regularHour.closed && currentTime>=openingTime && currentTime<=closingTime){
                                                 react.message.channel.send(`${storeName} er åpen, den stenger kl ${regularHour.closingTime}`)
                                             } else if(regularHour.closed){
