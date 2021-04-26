@@ -16,16 +16,18 @@ client.login(botToken)
 
 client.on("ready", () => {
     console.log("bot ready")
+    client.user.setActivity(`Bruker ${prefix}hjelp`)
 })
 
 client.on("message", msg => { //venter på meldinger
     var prefixFromMessage = msg.content.substring(0, prefix.length)
     if (prefixFromMessage == prefix) {
         var command = msg.content.substring(prefix.length).split(" ")[0]
+        command = command.toLowerCase()
         var args = msg.content.substring(prefix.length).split(" ")
         args.splice(0, 1)
         switch (command) {
-            case "FinnButikk":
+            case "finnbutikk":
                 if (!args[0]) {
                     msg.reply(`mangler argument, bruk slik: ${prefix}${command} navn på butikk`)
                 } else {
@@ -136,6 +138,9 @@ client.on("message", msg => { //venter på meldinger
                         })
                     })
                 }
+                break;
+                case "hjelp":
+                    msg.reply(`bruk: ${prefix}finnbutikk navn eller by her`)
                 break;
         }
     }
