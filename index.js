@@ -3,6 +3,7 @@ const https = require("https")
 const Discord = require("discord.js")
 const client = new Discord.Client()
 const fs = require("fs")
+const { parse } = require("dotenv")
 
 var botToken = process.env.BOT_TOKEN
 var prefix = process.env.PREFIX
@@ -72,25 +73,25 @@ client.on("message", msg => { //venter på meldinger
                                 const parsedData = JSON.parse(rawData)
                                 if (parsedData.length == 1) {
                                     var date = new Date()
-                                    date.setDate(23)
-                                    date.setHours(16)
                                     var day = days[date.getDay()]
                                     parsedData[0].openingHours.regularHours.forEach(openDay => {
-                                        if (openDay.dayOfTheWeek == day) {
-                                            if (!openDay.closed) { //sjekker om denne butikken er stengt denne dagen
+                                            console.log(openDay.closed)
+                                            if (openDay.dayOfTheWeek == day) { //sjekker om denne butikken er stengt denne dagen
                                                 var openingTime = +openDay.openingTime.split(":").join("")
                                                 var closingTime = +openDay.closingTime.split(":").join("")
                                                 var currentTime = +`${date.getHours()}${date.getMinutes()}`
                                                 if (!openDay.closed && currentTime > openingTime && currentTime < closingTime) {
                                                     msg.reply(`${parsedData[0].storeName} er åpen, den stenger kl${openDay.closingTime}`)
-                                                } else if(openDay.closed){
+                                                } else if(currentTime<openingTime){
+                                                    msg.reply(`${parsedData[0].storeName} er stengt, den åpner ikke før ${openDay.openingTime}`)
+                                                } 
+                                                else if(openDay.closed){
                                                     msg.reply(`${parsedData[0].storeName} er stengt hele ${norskeDager[date.getDay()]}`)
                                                 } 
                                                 else {
                                                     msg.reply(`${parsedData[0].storeName} er stengt`)
                                                 }
                                             }
-                                        }
                                     })
                                 } else {
                                     var sendAlert = false
@@ -194,10 +195,12 @@ client.on("messageReactionAdd", (react, user) => {
                                             var currentTime = +`${date.getHours()}${date.getMinutes()}`
                                             var openingTime = +regularHour.openingTime.split(":").join("")
                                             var closingTime = +regularHour.closingTime.split(":").join("")
-                                            console.log(regularHour.closed)
                                             if(!regularHour.closed && currentTime>=openingTime && currentTime<=closingTime){
                                                 react.message.channel.send(`${storeName} er åpen, den stenger kl ${regularHour.closingTime}`)
-                                            } else if(regularHour.closed){
+                                            } else if(currentTime<=openingTime){
+                                                react.message.channel.send(`${storeName} er stengt, den åpner ikke før kl ${regularHour.openingTime}`)
+                                            } 
+                                            else if(regularHour.closed){
                                                 react.message.channel.send(`${storeName} er stengt hele ${norskeDager[date.getDay()]}`)
                                             } else{
                                                 react.message.channel.send(`${storeName} stengte kl ${regularHour.closingTime}`)
