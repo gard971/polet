@@ -11,7 +11,7 @@ var apiLink = process.env.API_LINK
 var apiKey = process.env.API_KEY
 var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 var norskeDager = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag']
-var allEmojis = ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭", "🇮", "🇯", "🇰", "🇱", "🇲", "🇳", "🇴", "🇵", "🇶", "🇷", "🇸", "🇹"]
+var allEmojis = ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭", "🇮", "🇯", "🇰", "🇱", "🇲", "🇳", "🇴", "🇵", "🇶", "🇷", "🇸"]
 
 client.login(botToken)
 
@@ -46,7 +46,7 @@ client.on("message", msg => { //venter på meldinger
                         path: `/stores/v0/details?storeNameContains=${storeNameString}`,
 
                         headers: {
-                            'Ocp-Apim-Subscription-Key': 'c245d6546cb64fe19a957657058f335b'
+                            'Ocp-Apim-Subscription-Key': apiKey
                         }
                     }
                     var storeGet = https.get(options, (res) => {
@@ -75,28 +75,28 @@ client.on("message", msg => { //venter på meldinger
                                     var date = new Date()
                                     var day = days[date.getDay()]
                                     parsedData[0].openingHours.regularHours.forEach(openDay => {
-                                            console.log(openDay.closed)
-                                            if (openDay.dayOfTheWeek == day) { //sjekker om denne butikken er stengt denne dagen
-                                                var openingTime = +openDay.openingTime.split(":").join("")
-                                                var closingTime = +openDay.closingTime.split(":").join("")
-                                                var currentTime = +`${date.getHours()}${date.getMinutes()}`
-                                                if (!openDay.closed && currentTime > openingTime && currentTime < closingTime) {
-                                                    msg.reply(`${parsedData[0].storeName} er åpen, den stenger kl${openDay.closingTime}`)
-                                                } else if(currentTime<openingTime){
-                                                    msg.reply(`${parsedData[0].storeName} er stengt, den åpner ikke før ${openDay.openingTime}`)
-                                                } 
-                                                else if(openDay.closed){
-                                                    msg.reply(`${parsedData[0].storeName} er stengt hele ${norskeDager[date.getDay()]}`)
-                                                } 
-                                                else {
-                                                    msg.reply(`${parsedData[0].storeName} er stengt`)
-                                                }
+                                        console.log(openDay.closed)
+                                        if (openDay.dayOfTheWeek == day) { //sjekker om denne butikken er stengt denne dagen
+                                            var openingTime = +openDay.openingTime.split(":").join("")
+                                            var closingTime = +openDay.closingTime.split(":").join("")
+                                            var currentTime = +`${date.getHours()}${date.getMinutes()}`
+                                            if (!openDay.closed && currentTime > openingTime && currentTime < closingTime) {
+                                                msg.reply(`${parsedData[0].storeName} er åpen, den stenger kl${openDay.closingTime}`)
+                                            } else if (currentTime < openingTime) {
+                                                msg.reply(`${parsedData[0].storeName} er stengt, den åpner ikke før ${openDay.openingTime}`)
                                             }
+                                            else if (openDay.closed) {
+                                                msg.reply(`${parsedData[0].storeName} er stengt hele ${norskeDager[date.getDay()]}`)
+                                            }
+                                            else {
+                                                msg.reply(`${parsedData[0].storeName} er stengt`)
+                                            }
+                                        }
                                     })
                                 } else {
                                     var sendAlert = false
                                     var StoreEmbed = new Discord.MessageEmbed().setTitle("Velg En Butikk")
-                                    StoreEmbed.setDescription(`Trykk på matchende reaksjon for å velge butikk`)
+                                    StoreEmbed.setDescription(`Trykk på matchende reaksjon for å velge butikk, eller trykk på ⏭️ for å gå til neste side`)
                                     client.users.fetch("279292405029535744").then(user => {
                                         StoreEmbed.setFooter(`Poletbot av ${user.username}`, user.avatarURL())
                                         var waitingActions = jsonRead("data/waitingActions.json")
@@ -104,6 +104,11 @@ client.on("message", msg => { //venter på meldinger
                                         var requestObject = {
                                             "type": "storeInfo",
                                             "MsgId": undefined,
+                                            "stores": []
+                                        }
+                                        var extraStoresObject = {
+                                            "type": "extraStores",
+                                            "msgId": undefined,
                                             "stores": []
                                         }
                                         parsedData.forEach(store => {
@@ -115,6 +120,16 @@ client.on("message", msg => { //venter på meldinger
                                                 }
                                                 reactionIndex++
                                                 requestObject.stores.push(newObject)
+                                            } else {
+                                                var secondReactionIndex = 0;
+                                                if (secondReactionIndex < allEmojis.length) {
+                                                    var newObject = {
+                                                        "storeID": store.storeId
+                                                    }
+                                                    extraStoresObject.msgId
+                                                    extraStoresObject.stores.push(newObject)
+                                                    secondReactionIndex++
+                                                }
                                             }
                                             if (reactionIndex >= allEmojis.length && !sendAlert) {
                                                 sendAlert = true
@@ -122,7 +137,7 @@ client.on("message", msg => { //venter på meldinger
                                         })
                                         msg.channel.send(StoreEmbed).then(msgFromBot => {
                                             if (sendAlert) {
-                                                msg.channel.send("Meldingen ble avkuttet, hvis du ikke ser butikken du lette etter, venligst ver mer spesifik")
+                                                msgFromBot.react("⏭️")
                                             }
                                             for (var i = 0; i < reactionIndex; i++) {
                                                 msgFromBot.react(allEmojis[i])
@@ -130,6 +145,10 @@ client.on("message", msg => { //venter på meldinger
                                             if (parsedData.length > 0) {
                                                 requestObject.MsgId = msgFromBot.id
                                                 waitingActions.push(requestObject)
+                                                if (extraStoresObject.stores.length > 0) {
+                                                    extraStoresObject.msgId = msgFromBot.id
+                                                    waitingActions.push(extraStoresObject)
+                                                }
                                                 jsonWrite("data/waitingActions.json", waitingActions)
                                             }
                                         })
@@ -142,8 +161,8 @@ client.on("message", msg => { //venter på meldinger
                     })
                 }
                 break;
-                case "hjelp":
-                    msg.reply(`bruk: ${prefix}finnbutikk navn eller by her`)
+            case "hjelp":
+                msg.reply(`bruk: ${prefix}finnbutikk navn eller by her`)
                 break;
         }
     }
@@ -162,7 +181,7 @@ client.on("messageReactionAdd", (react, user) => {
                             path: `/stores/v0/details?storeId=${store.storeID}`,
 
                             headers: {
-                                'Ocp-Apim-Subscription-Key': 'c245d6546cb64fe19a957657058f335b'
+                                'Ocp-Apim-Subscription-Key': apiKey
                             }
                         }
                         var storeGet = https.get(options, (res) => {
@@ -191,18 +210,18 @@ client.on("messageReactionAdd", (react, user) => {
                                     var storeName = store.storeName
                                     var date = new Date()
                                     store.openingHours.regularHours.forEach(regularHour => {
-                                        if(regularHour.dayOfTheWeek == days[date.getDay()]){
+                                        if (regularHour.dayOfTheWeek == days[date.getDay()]) {
                                             var currentTime = +`${date.getHours()}${date.getMinutes()}`
                                             var openingTime = +regularHour.openingTime.split(":").join("")
                                             var closingTime = +regularHour.closingTime.split(":").join("")
-                                            if(!regularHour.closed && currentTime>=openingTime && currentTime<=closingTime){
+                                            if (!regularHour.closed && currentTime >= openingTime && currentTime <= closingTime) {
                                                 react.message.channel.send(`${storeName} er åpen, den stenger kl ${regularHour.closingTime}`)
-                                            } else if(currentTime<=openingTime){
+                                            } else if (currentTime <= openingTime) {
                                                 react.message.channel.send(`${storeName} er stengt, den åpner ikke før kl ${regularHour.openingTime}`)
-                                            } 
-                                            else if(regularHour.closed){
+                                            }
+                                            else if (regularHour.closed) {
                                                 react.message.channel.send(`${storeName} er stengt hele ${norskeDager[date.getDay()]}`)
-                                            } else{
+                                            } else {
                                                 react.message.channel.send(`${storeName} stengte kl ${regularHour.closingTime}`)
                                             }
                                         }
@@ -216,6 +235,33 @@ client.on("messageReactionAdd", (react, user) => {
                             })
                         })
                     }
+                })
+            } else if(waitingActions.type=="extraStores" && waitingActions.msgId == react.message.id && react.emoji.name == "⏭️"){
+                console.log("morestores")
+                var moreStoresEmbed = new Discord.MessageEmbed()
+                moreStoresEmbed.setDescription(`Trykk på matchende reaksjon for å velge butikk`)
+                client.users.fetch("279292405029535744").then(user => {
+                    moreStoresEmbed.setFooter(`Polet-bot av ${user.username}`, user.avatar)
+                    var reactionIndex = 0;
+                    waitingActions.stores.forEach(store => {
+                        var options = {
+                            hostname: `${apiLink}`,
+                            port: 443,
+                            path: `/stores/v0/details?storeId=${store.storeID}`,
+
+                            headers: {
+                                'Ocp-Apim-Subscription-Key': apiKey
+                            }
+                        }
+                        var storeReturn = httpsGet(options)[0]
+                        moreStoresEmbed.addField(storeReturn.storeName, allEmojis[reactionIndex])
+                        reactionIndex++
+                    })
+                    react.message.channel.send(moreStoresEmbed).then(msgFromBot => {
+                        for(var i2 = 0; i2<reactionIndex; i++){
+                            msgFromBot.react(allEmojis[reactionIndex])
+                        }
+                    })
                 })
             }
         });
@@ -266,4 +312,28 @@ function nextLetter(s) {
                 return String.fromCharCode(++c);
         }
     });
+}
+function httpsGet(options) {
+    https.get(options, (res) => {
+        let rawData = ''
+        res.on("data", (chunk) => rawData += chunk)
+        res.on('end', () => {
+            const { statusCode } = res
+            const contentType = res.headers['content-type']
+            if (statusCode != 200) {
+                console.log(`something went wrong in httpGet. Host returned follwoing statuscode ${statusCode}`)
+            }
+            else if (!/^application\/json/.test(contentType)) {
+                console.log(`invalid content type. \n Expected Application/JSON but recieved ${contentType}`)
+            }
+            else {
+                try {
+                    var jsonData = JSON.parse(rawData)
+                    return jsonData
+                } catch (e) {
+                    console.log(e)
+                }
+            }
+        })
+    })
 }
