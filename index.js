@@ -17,7 +17,7 @@ client.login(botToken)
 
 client.on("ready", () => {
     console.log("bot ready")
-    client.user.setActivity(`Bruker ${prefix}hjelp`)
+    client.user.setActivity(`${prefix}hjelp`)
 })
 
 client.on("message", msg => { //venter på meldinger
