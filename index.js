@@ -1,3 +1,10 @@
+/*
+Versjon 1.17
+
+Laget av Gard
+
+*/
+
 const dotenv = require("dotenv").config()
 const https = require("https")
 const Discord = require("discord.js")
