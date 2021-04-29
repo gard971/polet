@@ -1,5 +1,5 @@
 /*
-Versjon 1.17
+Versjon 2.0
 
 Laget av Gard
 
@@ -10,7 +10,6 @@ const https = require("https")
 const Discord = require("discord.js")
 const client = new Discord.Client()
 const fs = require("fs")
-const { parse } = require("dotenv")
 
 var botToken = process.env.BOT_TOKEN
 var prefix = process.env.PREFIX
@@ -81,31 +80,42 @@ client.on("message", msg => { //venter på meldinger
                                 if (parsedData.length == 1) {
                                     var date = new Date()
                                     var day = days[date.getDay()]
+                                    var store = parsedData[0]
+                                    var storeName = store.storeName
                                     parsedData[0].openingHours.regularHours.forEach(openDay => {
+                                        if (day == openDay.dayOfTheWeek) {
                                             console.log(openDay.closed)
-                                            if (openDay.dayOfTheWeek == day) { //sjekker om denne butikken er stengt denne dagen
-                                                var openingTime = +openDay.openingTime.split(":").join("")
-                                                var closingTime = +openDay.closingTime.split(":").join("")
-                                                var currentTime = +`${date.getHours()}${date.getMinutes()}`
-                                                if (!openDay.closed && currentTime > openingTime && currentTime < closingTime) {
-                                                    msg.reply(`${parsedData[0].storeName} er åpen, den stenger kl${openDay.closingTime}`)
-                                                } else if(currentTime<openingTime){
-                                                    msg.reply(`${parsedData[0].storeName} er stengt, den åpner ikke før ${openDay.openingTime}`)
-                                                } 
-                                                else if(openDay.closed){
-                                                    msg.reply(`${parsedData[0].storeName} er stengt hele ${norskeDager[date.getDay()]}`)
-                                                } 
-                                                else {
-                                                    msg.reply(`${parsedData[0].storeName} er stengt`)
+                                            var openingTime = +openDay.openingTime.split(":").join("")
+                                            var closingTime = +openDay.closingTime.split(":").join("")
+                                            var currentTime = +`${date.getHours()}${date.getMinutes()}`
+                                            var storeEmbed = new Discord.MessageEmbed()
+
+                                            client.users.fetch("279292405029535744").then(user => {
+                                                storeEmbed.setFooter(`Polet-bot av ${user.username}`, user.avatarURL())
+
+                                                storeEmbed.setTitle(storeName)
+                                                storeEmbed.addField(`Område/By:`, store.address.city, true)
+                                                storeEmbed.addField(`Adresse:`, store.address.street, true)
+                                                storeEmbed.setImage("https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Vinmonopolets_logo.jpg/1024px-Vinmonopolets_logo.jpg")
+                                                if (!openDay.closed && currentTime >= openingTime && currentTime <= closingTime) {
+                                                    storeEmbed.setDescription(`${storeName} er åpen, den stenger kl:${openDay.closingTime}`)
+                                                } else if (currentTime <= openingTime) {
+                                                    storeEmbed.setDescription(`${storeName} er stengt, den åpner ikke før kl ${openDay.openingTime}`)
+                                                } else if (openDay.closed) {
+                                                    storeEmbed.setDescription(`${storeName} er stengt hele ${norskeDager[date.getDay()]}`)
+                                                } else {
+                                                    storeEmbed.setDescription(`${storeName} stengte kl ${openDay.closingTime}`)
                                                 }
-                                            }
+                                                msg.channel.send(storeEmbed)
+                                            })
+                                        }
                                     })
                                 } else {
                                     var sendAlert = false
                                     var StoreEmbed = new Discord.MessageEmbed().setTitle("Velg En Butikk")
                                     StoreEmbed.setDescription(`Trykk på matchende reaksjon for å velge butikk`)
                                     client.users.fetch("279292405029535744").then(user => {
-                                        StoreEmbed.setFooter(`Poletbot av ${user.username}`, user.avatarURL())
+                                        StoreEmbed.setFooter(`Polet-bot av ${user.username}`, user.avatarURL())
                                         var waitingActions = jsonRead("data/waitingActions.json")
                                         var reactionIndex = 0;
                                         var requestObject = {
@@ -149,8 +159,8 @@ client.on("message", msg => { //venter på meldinger
                     })
                 }
                 break;
-                case "hjelp":
-                    msg.reply(`bruk: ${prefix}finnbutikk navn eller by her`)
+            case "hjelp":
+                msg.reply(`bruk: ${prefix}finnbutikk navn eller by her`)
                 break;
         }
     }
@@ -198,23 +208,33 @@ client.on("messageReactionAdd", (react, user) => {
                                     var storeName = store.storeName
                                     var date = new Date()
                                     store.openingHours.regularHours.forEach(regularHour => {
-                                        if(regularHour.dayOfTheWeek == days[date.getDay()]){
+                                        if (regularHour.dayOfTheWeek == days[date.getDay()]) {
                                             var currentTime = +`${date.getHours()}${date.getMinutes()}`
                                             var openingTime = +regularHour.openingTime.split(":").join("")
                                             var closingTime = +regularHour.closingTime.split(":").join("")
-                                            if(!regularHour.closed && currentTime>=openingTime && currentTime<=closingTime){
-                                                react.message.channel.send(`${storeName} er åpen, den stenger kl ${regularHour.closingTime}`)
-                                            } else if(currentTime<=openingTime){
-                                                react.message.channel.send(`${storeName} er stengt, den åpner ikke før kl ${regularHour.openingTime}`)
-                                            } 
-                                            else if(regularHour.closed){
-                                                react.message.channel.send(`${storeName} er stengt hele ${norskeDager[date.getDay()]}`)
-                                            } else{
-                                                react.message.channel.send(`${storeName} stengte kl ${regularHour.closingTime}`)
-                                            }
+                                            var storeEmbed = new Discord.MessageEmbed()
+                                            client.users.fetch("279292405029535744").then(user => {
+                                                storeEmbed.setFooter(`Polet-bot av ${user.username}`, user.avatarURL())
+
+                                                storeEmbed.setTitle(storeName)
+                                                storeEmbed.addField(`Område/By:`, store.address.city, true)
+                                                storeEmbed.addField(`Adresse:`, store.address.street, true)
+                                                storeEmbed.setImage("https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Vinmonopolets_logo.jpg/1024px-Vinmonopolets_logo.jpg")
+                                                if (!regularHour.closed && currentTime >= openingTime && currentTime <= closingTime) {
+                                                    storeEmbed.setDescription(`${storeName} er åpen, den stenger kl:${regularHour.closingTime}`)
+                                                } else if (currentTime <= openingTime) {
+                                                    storeEmbed.setDescription(`${storeName} er stengt, den åpner ikke før kl ${regularHour.openingTime}`)
+                                                } else if (regularHour.closed) {
+                                                    storeEmbed.setDescription(`${storeName} er stengt hele ${norskeDager[date.getDay()]}`)
+                                                } else {
+                                                    storeEmbed.setDescription(`${storeName} stengte kl ${regularHour.closingTime}`)
+                                                }
+                                                react.message.channel.send(storeEmbed)
+                                            })
                                         }
                                         waitingActions.splice(i, 1)
                                         jsonWrite("data/waitingActions.json", waitingActions)
+
 
                                     })
                                 } catch (e) {
