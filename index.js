@@ -1,5 +1,5 @@
 /*
-Versjon 2.0
+Versjon 3.0
 
 Laget av Gard
 
@@ -77,7 +77,7 @@ client.on("message", msg => { //venter på meldinger
                         res.on("end", () => {
                             try {
                                 const parsedData = JSON.parse(rawData)
-                                if (parsedData.length == 1) {
+                                if (parsedData.length == 1) { //Fant kun en butikk så viser detaljer med en gang
                                     var date = new Date()
                                     var day = days[date.getDay()]
                                     var store = parsedData[0]
@@ -103,13 +103,40 @@ client.on("message", msg => { //venter på meldinger
                                                 } else if (openDay.closed) {
                                                     storeEmbed.setDescription(`${storeName} er stengt hele ${norskeDager[date.getDay()]}`)
                                                 } else {
-                                                    storeEmbed.setDescription(`${storeName} stengte kl ${openDay.closingTime}`)
+                                                    var openingDay
+                                                    var newOpeningHour
+                                                    var done = false
+                                                    var newDate = date
+                                                    newDate.setDate(newDate.getDate()+1) //setter den nye datoen til neste dag så den ikke tar med idag som en dag butikken åpner
+                                                    var times = 0
+                                                    while(!done){
+                                                        if(times >= 14){
+                                                            msg.channel.send(`Feil, gikk gjennom dagene ${times} ganger uten resultat. Avbryter`)
+                                                            done = true
+                                                            break;
+                                                        }
+                                                        
+                                                        store.openingHours.regularHours.forEach(newRegularHour => {
+                                                            if(newRegularHour.dayOfTheWeek == days[newDate.getDay()]){
+                                                                if(!newRegularHour.closed){
+                                                                    openingDay = norskeDager[newDate.getDay()]
+                                                                    newOpeningHour = newRegularHour.openingTime
+                                                                    done = true
+                                                                }
+                                                                else{
+                                                                    times++
+                                                                    newDate.setDate(newDate.getDate()+1)
+                                                                }
+                                                            }
+                                                        })
+                                                    }
+                                                    storeEmbed.setDescription(`${storeName} stengte kl ${openDay.closingTime}. Den åpner kl ${newOpeningHour} på ${openingDay}`)
                                                 }
                                                 msg.channel.send(storeEmbed)
                                             })
                                         }
                                     })
-                                } else {
+                                } else { //fant flere butikker så bruker må velge hvilken
                                     var sendAlert = false
                                     var StoreEmbed = new Discord.MessageEmbed().setTitle("Velg En Butikk")
                                     StoreEmbed.setDescription(`Trykk på matchende reaksjon for å velge butikk`)
@@ -201,7 +228,7 @@ client.on("messageReactionAdd", (react, user) => {
                                 rawData += chunk
                             })
                             res.on("end", () => {
-                                try {
+                                try {  //Bruker har valgt butikk så viser detaljer om valgt butikk
                                     const parsedData = JSON.parse(rawData)
                                     store = parsedData[0]
                                     var storeName = store.storeName
@@ -214,7 +241,6 @@ client.on("messageReactionAdd", (react, user) => {
                                             var storeEmbed = new Discord.MessageEmbed()
                                             client.users.fetch("279292405029535744").then(user => {
                                                 storeEmbed.setFooter(`Polet-bot av ${user.username}`, user.avatarURL())
-
                                                 storeEmbed.setTitle(storeName)
                                                 storeEmbed.addField(`Område/By:`, store.address.city, true)
                                                 storeEmbed.addField(`Adresse:`, store.address.street, true)
@@ -222,11 +248,39 @@ client.on("messageReactionAdd", (react, user) => {
                                                 if (!regularHour.closed && currentTime >= openingTime && currentTime <= closingTime) {
                                                     storeEmbed.setDescription(`${storeName} er åpen, den stenger kl:${regularHour.closingTime}`)
                                                 } else if (currentTime <= openingTime) {
-                                                    storeEmbed.setDescription(`${storeName} er stengt, den åpner ikke før kl ${regularHour.openingTime}`)
+                                                    storeEmbed.setDescription(`${storeName} er stengt, den åpner ikke før kl ${regularHour.openingTime} idag`)
                                                 } else if (regularHour.closed) {
                                                     storeEmbed.setDescription(`${storeName} er stengt hele ${norskeDager[date.getDay()]}`)
                                                 } else {
-                                                    storeEmbed.setDescription(`${storeName} stengte kl ${regularHour.closingTime}`)
+                                                    var openingDay
+                                                    var newOpeningHour
+                                                    var done = false
+                                                    var newDate = date
+                                                    newDate.setDate(newDate.getDate()+1) //setter den nye datoen til neste dag så den ikke tar med idag som en dag butikken åpner
+                                                    var times = 0
+                                                    while(!done){
+                                                        if(times >= 14){
+                                                            react.message.channel.send(`Feil, gikk gjennom dagene ${times} ganger uten resultat. Avbryter`)
+                                                            done = true
+                                                            break;
+                                                        }
+                                                        store.openingHours.regularHours.forEach(newRegularHour => {
+                                                            if(newRegularHour.dayOfTheWeek == days[newDate.getDay()]){
+                                                                if(!newRegularHour.closed){
+                                                                    openingDay = norskeDager[newDate.getDay()]
+                                                                    newOpeningHour = newRegularHour.openingTime
+                                                                    done = true
+                                                                }
+                                                                else{
+                                                                    times++
+                                                                    newDate.setDate(newDate.getDate()+1)
+                                                                }
+                                                            }
+                                                        })
+                                                    }
+                                                    if(newOpeningHour && openingDay){
+                                                    storeEmbed.setDescription(`${storeName} stengte kl ${regularHour.closingTime}. Den åpner kl ${newOpeningHour} på ${openingDay}`)
+                                                    }
                                                 }
                                                 react.message.channel.send(storeEmbed)
                                             })
@@ -278,18 +332,4 @@ function jsonRead(path) {
 
 function jsonWrite(path, data) {
     fs.writeFileSync(path, JSON.stringify(data))
-}
-
-function nextLetter(s) {
-    return s.replace(/([a-zA-Z])[^a-zA-Z]*$/, function (a) {
-        var c = a.charCodeAt(0);
-        switch (c) {
-            case 90:
-                return 'A';
-            case 122:
-                return 'a';
-            default:
-                return String.fromCharCode(++c);
-        }
-    });
 }
