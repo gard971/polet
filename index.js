@@ -46,7 +46,7 @@ client.on("message", msg => { //venter på meldinger
                         path: `/stores/v0/details?storeNameContains=${storeNameString}`,
 
                         headers: {
-                            'Ocp-Apim-Subscription-Key': 'c245d6546cb64fe19a957657058f335b'
+                            'Ocp-Apim-Subscription-Key': apiKey
                         }
                     }
                     var storeGet = https.get(options, (res) => {
@@ -162,7 +162,7 @@ client.on("messageReactionAdd", (react, user) => {
                             path: `/stores/v0/details?storeId=${store.storeID}`,
 
                             headers: {
-                                'Ocp-Apim-Subscription-Key': 'c245d6546cb64fe19a957657058f335b'
+                                'Ocp-Apim-Subscription-Key': apiKey
                             }
                         }
                         var storeGet = https.get(options, (res) => {
