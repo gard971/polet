@@ -84,7 +84,6 @@ client.on("message", msg => { //venter på meldinger
                                     var storeName = store.storeName
                                     parsedData[0].openingHours.regularHours.forEach(openDay => {
                                         if (day == openDay.dayOfTheWeek) {
-                                            console.log(openDay.closed)
                                             var openingTime = +openDay.openingTime.split(":").join("")
                                             var closingTime = +openDay.closingTime.split(":").join("")
                                             var currentTime = +`${date.getHours()}${date.getMinutes()}`
