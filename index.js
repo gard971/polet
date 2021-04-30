@@ -1,5 +1,5 @@
 /*
-Versjon 3.1
+Versjon 3.2
 
 Laget av Gard
 
@@ -344,3 +344,17 @@ function formatDate(date) {
         return +`ada`
     }
 }
+
+//error handling
+process.on("uncaughtException", (e) => {
+    console.log(e.message+ "\n FEIL FANGET!! FORTSETTER OPERASJON!!")
+    client.users.fetch(administratorDiscordID).then(user => {
+        user.send(`fanget feil: ${e.message}. Fortsetter operasjon`)
+    })
+})
+process.on("unhandledRejection", (e) => {
+    console.log(e+ "\n FEIL FANGET!! FORTSETTER OPERASJON!!")
+    client.users.fetch(administratorDiscordID).then(user => {
+        user.send(`fanget feil: ${e}. Fortsetter operasjon`)
+    })
+})
