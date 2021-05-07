@@ -1,8 +1,7 @@
 /*
-Versjon 3.2
+Versjon 4.0
 
 Laget av Gard
-
 
 */
 
@@ -11,6 +10,7 @@ const https = require("https")
 const Discord = require("discord.js")
 const client = new Discord.Client()
 const fs = require("fs")
+const nodeSchedule = require("node-schedule")
 
 var botToken = process.env.BOT_TOKEN
 var prefix = process.env.PREFIX
@@ -176,6 +176,21 @@ client.on("message", msg => { //venter på meldinger
                                                     requestObject.MsgId = msgFromBot.id
                                                     waitingActions.push(requestObject)
                                                     jsonWrite("data/waitingActions.json", waitingActions)
+                                                    var deleteDate = new Date()
+                                                    deleteDate.setHours(deleteDate.getHours()+1)
+                                                    var J = nodeSchedule.scheduleJob(deleteDate, () => {
+                                                        console.log("schedule")
+                                                        var waitingActions = jsonRead("data/waitingActions.json")
+                                                        waitingActions.forEach((waitingAction, WI) => {
+                                                            if(waitingAction.MsgId == requestObject.MsgId){
+                                                                console.log("found")
+                                                                waitingActions.splice(WI, 1)
+                                                                jsonWrite("data/waitingActions.json", waitingActions)
+                                                            }
+                                                            else{console.log("not  found")}
+                                                        })
+                                                        J.cancelNext()
+                                                    })
                                                 }
                                             })
                                         })
@@ -290,7 +305,6 @@ client.on("messageReactionAdd", (react, user) => {
                                                     react.message.channel.send(storeEmbed)
                                                 })
                                             }
-                                            waitingActions.splice(i, 1)
                                             jsonWrite("data/waitingActions.json", waitingActions)
 
 
@@ -357,4 +371,8 @@ process.on("unhandledRejection", (e) => {
     client.users.fetch(administratorDiscordID).then(user => {
         user.send(`fanget feil: ${e}. Fortsetter operasjon`)
     })
+})
+process.on("SIGINT", () => {
+    jsonWrite("data/waitingActions.json", [])
+    process.exit()
 })
