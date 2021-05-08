@@ -1,5 +1,5 @@
 /*
-Versjon 4.0
+Versjon 5.0
 
 Laget av Gard
 
@@ -11,7 +11,6 @@ const Discord = require("discord.js")
 const client = new Discord.Client()
 const fs = require("fs")
 const nodeSchedule = require("node-schedule")
-
 var botToken = process.env.BOT_TOKEN
 var prefix = process.env.PREFIX
 var apiLink = process.env.API_LINK
@@ -51,7 +50,7 @@ client.on("message", msg => { //venter på meldinger
                     var options = {
                         hostname: `${apiLink}`,
                         port: 443,
-                        path: `/stores/v0/details?storeNameContains=${storeNameString}`,
+                        path: `/stores/v0/details?storeNameContains=${storeNameString}`.replaceAll(" ", "_"),
 
                         headers: {
                             'Ocp-Apim-Subscription-Key': apiKey
@@ -89,7 +88,7 @@ client.on("message", msg => { //venter på meldinger
                                                 var openingTime = +openDay.openingTime.split(":").join("")
                                                 var closingTime = +openDay.closingTime.split(":").join("")
                                                 var currentTime = +`${date.getHours()}${date.getMinutes()}`
-                                                var storeEmbed = new Discord.MessageEmbed()
+                                                var storeEmbed = new Discord.MessageEmbed().setColor("#ECECEC")
 
                                                 client.users.fetch("279292405029535744").then(user => {
                                                     storeEmbed.setFooter(`Polet-bot av ${user.username}`, user.avatarURL())
@@ -124,8 +123,7 @@ client.on("message", msg => { //venter på meldinger
                                                                         openingDay = norskeDager[newDate.getDay()]
                                                                         newOpeningHour = newRegularHour.openingTime
                                                                         done = true
-                                                                    }
-                                                                    else {
+                                                                    } else {
                                                                         times++
                                                                         newDate.setDate(newDate.getDate() + 1)
                                                                     }
@@ -141,6 +139,7 @@ client.on("message", msg => { //venter på meldinger
                                     } else { //fant flere butikker så bruker må velge hvilken
                                         var sendAlert = false
                                         var StoreEmbed = new Discord.MessageEmbed().setTitle("Velg En Butikk")
+                                        StoreEmbed.setColor("#ECECEC")
                                         StoreEmbed.setDescription(`Trykk på matchende reaksjon for å velge butikk`)
                                         client.users.fetch("279292405029535744").then(user => {
                                             StoreEmbed.setFooter(`Polet-bot av ${user.username}`, user.avatarURL())
@@ -177,17 +176,14 @@ client.on("message", msg => { //venter på meldinger
                                                     waitingActions.push(requestObject)
                                                     jsonWrite("data/waitingActions.json", waitingActions)
                                                     var deleteDate = new Date()
-                                                    deleteDate.setHours(deleteDate.getHours()+1)
+                                                    deleteDate.setHours(deleteDate.getHours() + 1)
                                                     var J = nodeSchedule.scheduleJob(deleteDate, () => {
-                                                        console.log("schedule")
                                                         var waitingActions = jsonRead("data/waitingActions.json")
                                                         waitingActions.forEach((waitingAction, WI) => {
-                                                            if(waitingAction.MsgId == requestObject.MsgId){
-                                                                console.log("found")
+                                                            if (waitingAction.MsgId == requestObject.MsgId) {
                                                                 waitingActions.splice(WI, 1)
                                                                 jsonWrite("data/waitingActions.json", waitingActions)
                                                             }
-                                                            else{console.log("not  found")}
                                                         })
                                                         J.cancelNext()
                                                     })
@@ -203,8 +199,161 @@ client.on("message", msg => { //venter på meldinger
                     })
                 }
                 break;
+            case "sjekkdag": //sjekker neste Xdag, for eksempel !!sjekkdag lagunen Lørdag vil sjekke åpningstid på lagunen neste lørdag
+                if (!args[0] || !args[1]) {
+                    msg.reply(`mangler argument, bruk slik: ${prefix}sjekkdag butikk navn her Dag(for eksempel Lørdag)`)
+                } else {
+                    var storeNameString
+                    var dayToCheck = false
+                    var dayIndex = false
+                    args.forEach(arg => {
+                        var isDay = false
+                        norskeDager.forEach((norskDag, I) => {
+                            if (arg.toLowerCase() == norskDag.toLowerCase()) {
+                                dayToCheck = days[I]
+                                dayIndex = I
+                                isDay = true
+                            }
+                        })
+                        if (!isDay) {
+                            if (storeNameString) {
+                                storeNameString += ` ${arg}`
+                            } else {
+                                storeNameString = arg
+                            }
+                        }
+                    })
+                    if (dayToCheck && storeNameString) {
+                        var options = {
+                            hostname: `${apiLink}`,
+                            port: 443,
+                            path: `/stores/v0/details?storeNameContains=${storeNameString}`.replaceAll(" ", "_"),
+
+                            headers: {
+                                'Ocp-Apim-Subscription-Key': apiKey
+                            }
+                        }
+                        var httpRequest = https.get(options, (res) => {
+                            const {
+                                statusCode
+                            } = res
+                            const contentType = res.headers['content-type']
+                            if (statusCode !== 200) {
+                                console.log(`request failed. \n` + `status Code: ${statusCode}`)
+                                msg.channel.send(`Kunne ikke hente data fra ${apiLink} fikk kode ${statusCode} <@${administratorDiscordID}>`)
+                            } else if (!/^application\/json/.test(contentType)) {
+                                console.log(`Invalid content type. \n` + `Excpected application/json but recived ${contentType}`)
+                            } else {
+                                var rawData = ""
+                                res.on("data", (chunk) => {
+                                    rawData += chunk
+                                })
+                                res.on("end", () => {
+                                    try {
+                                        var parsedData = JSON.parse(rawData)
+                                        if (parsedData.length == 1) {
+                                            var store = parsedData[0]
+                                            var date = new Date()
+                                            var currentDay = days[date.getDay()]
+                                            var daysToAdd = 0
+                                            var done = false
+                                            var startLoop = false
+                                            while (!done) {
+                                                if (daysToAdd >= 14) {
+                                                    msg.reply(`gikk gjennom dagene mer en 14 ganger uten resultat, avbryter`)
+                                                    break;
+                                                }
+                                                days.forEach(day => {
+                                                    if (!done) {
+                                                        if (!startLoop && day == currentDay) {
+                                                            startLoop = true
+                                                        } else if (day == dayToCheck) {
+                                                            daysToAdd++
+                                                            done = true
+                                                        } else {
+                                                            daysToAdd++
+                                                        }
+                                                    }
+                                                })
+                                            }
+                                            if (done) {
+                                                var storeEmbed = new Discord.MessageEmbed().setColor("#ECECEC")
+                                                storeEmbed.setTitle(store.storeName)
+                                                storeEmbed.setImage("https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Vinmonopolets_logo.jpg/1024px-Vinmonopolets_logo.jpg")
+                                                storeEmbed.addField("Områade/By", store.address.city, true)
+                                                storeEmbed.addField("Adresse", store.address.street, true)
+                                                var dateToCheck = new Date()
+                                                dateToCheck.setDate(date.getDate() + daysToAdd)
+                                                store.openingHours.regularHours.forEach(openingHour => {
+                                                    if (openingHour.dayOfTheWeek == dayToCheck) {
+                                                        var isException = false
+                                                        store.openingHours.exceptionHours.forEach(exceptionHour => {
+                                                            var exceptionDate = `${dateToCheck.getFullYear()}-${formatDate(dateToCheck.getMonth()+1)}-${formatDate(dateToCheck.getDate())}`
+                                                            if (exceptionHour.date == exceptionDate && exceptionHour.openingTime == "") {
+                                                                isException = true
+                                                                if (exceptionHour.message != "") {
+                                                                    storeEmbed.setDescription(`${store.storeName} er stengt på ${norskeDager[dayIndex]}. Grunnet: ${exceptionHour.message}`)
+                                                                } else {
+                                                                    storeEmbed.setDescription(`${store.storeName} er stengt på ${norskeDager[dayIndex]}`)
+                                                                }
+                                                            } else if (exceptionHour.date == exceptionDate) {
+                                                                isException = true
+                                                                if (exceptionHour.message != "") {
+                                                                    storeEmbed.setDescription(`${store.storeName} har spesielle åpningstider neste ${norskeDager[dayIndex]}. ${store.storeName} er kun åpent mellom ${exceptionHour.openingTime} og ${exceptionHour.closingTime}. Grunnet ${exceptionHour.message}`)
+                                                                } else {
+                                                                    storeEmbed.setDescription(`${store.storeName} har spesielle åpningstider neste ${norskeDager[dayIndex]}. ${store.storeName} er kun åpent mellom ${exceptionHour.openingTime} og ${exceptionHour.closingTime}.`)
+                                                                }
+                                                            }
+                                                        })
+                                                        if (!openingHour.closed && !isException) {
+                                                            storeEmbed.setDescription(`${store.storeName} er åpen mellom ${openingHour.openingTime} og ${openingHour.closingTime} på ${norskeDager[dayIndex]}`)
+                                                        } else if (!isException) {
+                                                            storeEmbed.setDescription(`${store.storeName} er stengt på ${norskeDager[dayIndex]}`)
+                                                        }
+                                                        if (storeEmbed.description) {
+                                                            client.users.fetch("279292405029535744").then(user => {
+                                                                storeEmbed.setFooter(`Polet-bot av ${user.username}`, user.avatarURL())
+                                                                msg.channel.send(storeEmbed)
+                                                            })
+                                                        } else {
+                                                            msg.channel.send("noe gikk galt. storeEmbed.description === undefined")
+                                                        }
+                                                    }
+                                                })
+                                            }
+                                        }
+                                        else{
+                                            msg.reply(`fikk flere resultat, vær mer nøyaktig med butikk navn. Bruk ${prefix}finnbutikk for å finne nøyaktig butikknavn?`)
+                                        }
+                                    } catch (e) {
+                                        msg.channel.send("noe gikk galt. " + e)
+                                        console.log(e)
+                                    }
+                                })
+                            }
+                        })
+                    } else {
+                        msg.reply(`mangler argument, bruk slik: ${prefix}sjekkdag butikk navn her Dag(for eksempel Lørdag) nr2`)
+                    }
+                }
+                break;
+            case "kode":
+                msg.reply("https://github.com/gard971/polet/blob/main/index.js")
+                break;
             case "hjelp":
-                msg.reply(`bruk: ${prefix}finnbutikk navn eller by her`)
+                var msgEmbed = new Discord.MessageEmbed()
+                msgEmbed.setTitle("Hjelp")
+                msgEmbed.addFields(
+                    {name:`${prefix}finnbutikk butikk navn`, value:`Få informasjon om butikk; Åpningstid, adresse osv`},
+                    {name:`${prefix}sjekkdag nøyaktig butikk navn dag(for eksempel lørdag)`, value:`få informasjon om butikk frem i tid, som åpningstid adresse osv`},
+                    {name: `${prefix}kode`, value:`sjekk ut den episke koden gard har laget`}
+                )
+                client.users.fetch("279292405029535744").then(user => {
+                    msgEmbed.setFooter(`Polet-bot av ${user.username}`, user.avatarURL())
+                    msgEmbed.setThumbnail("https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Vinmonopolets_logo.jpg/1024px-Vinmonopolets_logo.jpg")
+                    msgEmbed.setColor("#ECECEC")
+                    msg.channel.send(msgEmbed)
+                })
                 break;
         }
     }
@@ -220,7 +369,7 @@ client.on("messageReactionAdd", (react, user) => {
                         var options = {
                             hostname: `${apiLink}`,
                             port: 443,
-                            path: `/stores/v0/details?storeId=${store.storeID}`,
+                            path: `/stores/v0/details?storeId=${store.storeID}`.replaceAll(" ", "_"),
 
                             headers: {
                                 'Ocp-Apim-Subscription-Key': apiKey
@@ -239,15 +388,14 @@ client.on("messageReactionAdd", (react, user) => {
                                 msg.channel.send(`kunne ikke hente data fra ${apiLink}, fikk kode ${statusCode}, <@${administratorDiscordID}>`)
                             } else if (!/^application\/json/.test(contentType)) {
                                 console.log(`Invalid content type. \n` + `Excpected application/json but recived ${contentType}`)
-                            }
-                            else {
+                            } else {
                                 res.setEncoding('utf-8')
                                 var rawData = ""
                                 res.on("data", (chunk) => {
                                     rawData += chunk
                                 })
                                 res.on("end", () => {
-                                    try {  //Bruker har valgt butikk så viser detaljer om valgt butikk
+                                    try { //Bruker har valgt butikk så viser detaljer om valgt butikk
                                         const parsedData = JSON.parse(rawData)
                                         store = parsedData[0]
                                         var storeName = store.storeName
@@ -257,7 +405,7 @@ client.on("messageReactionAdd", (react, user) => {
                                                 var currentTime = +`${date.getHours()}${date.getMinutes()}`
                                                 var openingTime = +regularHour.openingTime.split(":").join("")
                                                 var closingTime = +regularHour.closingTime.split(":").join("")
-                                                var storeEmbed = new Discord.MessageEmbed()
+                                                var storeEmbed = new Discord.MessageEmbed().setColor("#ECECEC")
                                                 client.users.fetch("279292405029535744").then(user => {
                                                     storeEmbed.setFooter(`Polet-bot av ${user.username}`, user.avatarURL())
                                                     storeEmbed.setTitle(storeName)
@@ -290,8 +438,7 @@ client.on("messageReactionAdd", (react, user) => {
                                                                         openingDay = norskeDager[newDate.getDay()]
                                                                         newOpeningHour = newRegularHour.openingTime
                                                                         done = true
-                                                                    }
-                                                                    else {
+                                                                    } else {
                                                                         times++
                                                                         newDate.setDate(newDate.getDate() + 1)
                                                                     }
@@ -353,21 +500,28 @@ function jsonRead(path) {
 function jsonWrite(path, data) {
     fs.writeFileSync(path, JSON.stringify(data))
 }
+
 function formatDate(date) {
     if (date < 10) {
-        return +`ada`
+        return `0${date}`
     }
+    else{
+        return date
+    }
+}
+function encodeForApi(link){
+    return link.replace("/ /", "_")
 }
 
 //error handling
 process.on("uncaughtException", (e) => {
-    console.log(e.message+ "\n FEIL FANGET!! FORTSETTER OPERASJON!!")
+    console.log(e.message + "\n FEIL FANGET!! FORTSETTER OPERASJON!!")
     client.users.fetch(administratorDiscordID).then(user => {
         user.send(`fanget feil: ${e.message}. Fortsetter operasjon`)
     })
 })
 process.on("unhandledRejection", (e) => {
-    console.log(e+ "\n FEIL FANGET!! FORTSETTER OPERASJON!!")
+    console.log(e + "\n FEIL FANGET!! FORTSETTER OPERASJON!!")
     client.users.fetch(administratorDiscordID).then(user => {
         user.send(`fanget feil: ${e}. Fortsetter operasjon`)
     })
@@ -376,3 +530,7 @@ process.on("SIGINT", () => {
     jsonWrite("data/waitingActions.json", [])
     process.exit()
 })
+String.prototype.replaceAll = function(str1, str2, ignore) 
+{
+    return this.replace(new RegExp(str1.replace(/([\/\,\!\\\^\$\{\}\[\]\(\)\.\*\+\?\|\<\>\-\&])/g,"\\$&"),(ignore?"gi":"g")),(typeof(str2)=="string")?str2.replace(/\$/g,"$$$$"):str2);
+} 
