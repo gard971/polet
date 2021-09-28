@@ -1,5 +1,5 @@
 /*
-Versjon 5.0
+Versjon 6.0
 
 Laget av Gard
 
@@ -9,7 +9,7 @@ const dotenv = require("dotenv").config()
 const https = require("https")
 const Discord = require("discord.js")
 const client = new Discord.Client({
-    intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES]
+    intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES, Discord.Intents.FLAGS.GUILD_MESSAGE_REACTIONS]
 })
 const fs = require("fs")
 const nodeSchedule = require("node-schedule")
@@ -27,7 +27,7 @@ client.login(botToken)
 
 client.on("ready", () => {
     console.log("bot ready")
-    client.user.setActivity(`${prefix}hjelp`)
+    client.user.setActivity(`/hjelp`)
     //register all commands
     const guild = client.guilds.cache.get(guildId)
     var commands
@@ -63,12 +63,23 @@ client.on("ready", () => {
             }
         ]
     })
+    commands.create({
+        name:"kode",
+        description: "sjekk ut den episke koden Gard har laget for å få denne botten til å funke"
+    })
+    commands.create({
+        name:"hjelp",
+        description:"sjekk ut alle komandoene"
+    })
 })
 
 client.on("messageReactionAdd", (react, user) => {
+    console.log(react)
     if (!user.bot) {
         var waitingActions = jsonRead("data/waitingActions.json")
+        console.log(waitingActions)
         waitingActions.forEach((waitingAction, i) => {
+            console.log(waitingActions.MsgId+" "+react.message.id)
             if (waitingAction.type == "storeInfo" && waitingAction.MsgId == react.message.id) {
                 waitingAction.stores.forEach(store => {
                     if (store.reaction == react.emoji.name) {
@@ -157,7 +168,7 @@ client.on("messageReactionAdd", (react, user) => {
                                                             storeEmbed.setDescription(`${storeName} stengte kl ${regularHour.closingTime}. Den åpner kl ${newOpeningHour} på ${openingDay}`)
                                                         }
                                                     }
-                                                    react.message.channel.send(storeEmbed)
+                                                    react.message.channel.send({embeds:[storeEmbed]})
                                                 })
                                             }
                                             jsonWrite("data/waitingActions.json", waitingActions)
@@ -510,7 +521,7 @@ client.on("interactionCreate", (interaction) => {
                 msgEmbed.setFooter(`Polet-bot av ${user.username}`, user.avatarURL())
                 msgEmbed.setThumbnail("https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Vinmonopolets_logo.jpg/1024px-Vinmonopolets_logo.jpg")
                 msgEmbed.setColor("#ECECEC")
-                msg.channel.send({embeds:[msgEmbed]})
+                msg.reply({embeds:[msgEmbed]})
             })
             break;
     }
