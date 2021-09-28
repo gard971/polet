@@ -1,5 +1,10 @@
 BOT_TOKEN=changeme
-PREFIX=!!
+
+###prefix er deprecated grunnet overgang til slash komandoer
+PREFIX=!
+###
+
 API_LINK=apis.vinmonopolet.no
-API_KEY=changeme¨
-ADMIN_DISCORD_ID=DiscordUserID
+API_KEY=changeme
+ADMIN_DISCORD_ID=changeme
+GUILD_ID=changeme
