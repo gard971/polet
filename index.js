@@ -31,11 +31,7 @@ client.on("ready", () => {
     //register all commands
     const guild = client.guilds.cache.get(guildId)
     var commands
-    if (guild) {
-        commands = guild.commands
-    } else {
-        commands = client.application.commands
-    }
+    commands = client.application.commands
     commands.create({
         name: "finnbutikk",
         description: "Finn butikk etter navn",
