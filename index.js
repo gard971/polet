@@ -71,6 +71,10 @@ client.on("ready", () => {
         name:"hjelp",
         description:"sjekk ut alle komandoene"
     })
+    commands.create({
+        name:"inviter",
+        description:"inviter meg til en ny server"
+    })
 })
 
 client.on("messageReactionAdd", (react, user) => {
@@ -518,6 +522,9 @@ client.on("interactionCreate", (interaction) => {
                 msg.reply({embeds:[msgEmbed]})
             })
             break;
+        case "inviter":
+            msg.reply("Bruk denne linken for å invitere meg: https://discord.com/oauth2/authorize?client_id=836338316521111553&scope=bot&permissions=8")
+        break;
     }
 });
 
