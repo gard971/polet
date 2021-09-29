@@ -502,13 +502,13 @@ client.on("interactionCreate", (interaction) => {
             var msgEmbed = new Discord.MessageEmbed()
             msgEmbed.setTitle("Hjelp")
             msgEmbed.addFields({
-                name: `${prefix}finnbutikk butikk navn`,
+                name: `/finnbutikk butikknavn`,
                 value: `Få informasjon om butikk; Åpningstid, adresse osv`
             }, {
-                name: `${prefix}sjekkdag nøyaktig butikk navn dag(for eksempel lørdag)`,
+                name: `/sjekkdag butikknavn dag`,
                 value: `få informasjon om butikk frem i tid, som åpningstid adresse osv`
             }, {
-                name: `${prefix}kode`,
+                name: `/kode`,
                 value: `sjekk ut den episke koden gard har laget`
             })
             client.users.fetch("279292405029535744").then(user => {
