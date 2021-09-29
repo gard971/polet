@@ -237,6 +237,9 @@ client.on("interactionCreate", (interaction) => {
                         res.on("end", () => {
                             try {
                                 const parsedData = JSON.parse(rawData)
+                                if(parsedData.length < 1){
+                                    msg.reply("Fant ingen butikker med dette navnet")
+                                }
                                 if (parsedData.length == 1) { //Fant kun en butikk så viser detaljer med en gang
                                     var date = new Date()
                                     var day = days[date.getDay()]
@@ -514,7 +517,11 @@ client.on("interactionCreate", (interaction) => {
             }, {
                 name: `/kode`,
                 value: `sjekk ut den episke koden gard har laget`
-            })
+            }, {
+                name: `/inviter`,
+                value: `inviter meg til en ny server`
+            }
+            )
             client.users.fetch("279292405029535744").then(user => {
                 msgEmbed.setFooter(`Polet-bot av ${user.username}`, user.avatarURL())
                 msgEmbed.setThumbnail("https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Vinmonopolets_logo.jpg/1024px-Vinmonopolets_logo.jpg")
