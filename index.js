@@ -25,6 +25,10 @@ var guildId = process.env.GUILD_ID
 
 client.login(botToken)
 
+client.on('guildCreate', guild => {
+    guild.systemChannel.send(`Hei, takk for at du inviterte meg til din server! Før vi kan begynne må en administrator gi meg tilgang til å opprette komandoer: https://discord.com/api/oauth2/authorize?client_id=836338316521111553&scope=applications.commands`)
+  });
+
 client.on("ready", () => {
     console.log("bot ready")
     client.user.setActivity(`/hjelp`)
