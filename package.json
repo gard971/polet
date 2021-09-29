@@ -1,8 +1,8 @@
 {
   "name": "polet",
   "version": "1.0.0",
-  "engines":{
-    "node":"16.10"
+  "engines": {
+    "node": "16.10"
   },
   "description": "",
   "main": "index.js",

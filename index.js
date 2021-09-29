@@ -74,12 +74,9 @@ client.on("ready", () => {
 })
 
 client.on("messageReactionAdd", (react, user) => {
-    console.log(react)
     if (!user.bot) {
         var waitingActions = jsonRead("data/waitingActions.json")
-        console.log(waitingActions)
         waitingActions.forEach((waitingAction, i) => {
-            console.log(waitingActions.MsgId+" "+react.message.id)
             if (waitingAction.type == "storeInfo" && waitingAction.MsgId == react.message.id) {
                 waitingAction.stores.forEach(store => {
                     if (store.reaction == react.emoji.name) {
@@ -110,8 +107,6 @@ client.on("messageReactionAdd", (react, user) => {
                                 var rawData = ""
                                 res.on("data", (chunk) => {
                                     rawData += chunk
-                                    
-                                console.log(rawData)
                                 })
                                 res.on("end", () => {
                                     try { //Bruker har valgt butikk så viser detaljer om valgt butikk
@@ -216,7 +211,6 @@ client.on("interactionCreate", (interaction) => {
                         'Ocp-Apim-Subscription-Key': apiKey
                     }
                 }
-                console.log(optionsForApi.hostname+optionsForApi.path)
                 var storeGet = https.get(optionsForApi, (res) => {
                     const {
                         statusCode
@@ -239,7 +233,6 @@ client.on("interactionCreate", (interaction) => {
                         res.on("end", () => {
                             try {
                                 const parsedData = JSON.parse(rawData)
-                                console.log(`rawData is ${rawData}`)
                                 if (parsedData.length == 1) { //Fant kun en butikk så viser detaljer med en gang
                                     var date = new Date()
                                     var day = days[date.getDay()]
@@ -299,7 +292,6 @@ client.on("interactionCreate", (interaction) => {
                                         }
                                     })
                                 } else { //fant flere butikker så bruker må velge hvilken
-                                    console.log("lse")
                                     var sendAlert = false
                                     var StoreEmbed = new Discord.MessageEmbed().setTitle("Velg En Butikk")
                                     StoreEmbed.setColor("#ECECEC")
@@ -328,7 +320,6 @@ client.on("interactionCreate", (interaction) => {
                                             }
                                         })
                                         msg.channel.send(".").then((msgFromBot) => {
-                                            console.log(msgFromBot)
                                             if (sendAlert) {
                                                 msg.channel.send("Meldingen ble avkuttet, hvis du ikke ser butikken du lette etter, venligst ver mer spesifik")
                                             }
@@ -365,13 +356,16 @@ client.on("interactionCreate", (interaction) => {
             }
             break;
         case "sjekkdag": //sjekker neste Xdag, for eksempel !!sjekkdag lagunen Lørdag vil sjekke åpningstid på lagunen neste lørdag
-            if (!args[0] || !args[1]) {
+            if (false) { //deprecated grunnet overgang til slashkomandoer
                 msg.reply(`mangler argument, bruk slik: ${prefix}sjekkdag butikk navn her Dag(for eksempel Lørdag)`)
             } else {
                 var storeNameString
                 var dayToCheck = false
                 var dayIndex = false
-                args.forEach(arg => {
+                var arguments = []
+                arguments.push(args.getString("butikknavn"))
+                arguments.push(args.getString("dag"))
+                arguments.forEach(arg => {
                     var isDay = false
                     norskeDager.forEach((norskDag, I) => {
                         if (arg.toLowerCase() == norskDag.toLowerCase()) {
